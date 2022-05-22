@@ -6,6 +6,19 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <PropertyGroup>
+    <PackageId>janzi.Loggers</PackageId>
+    <Version>0.0.1</Version>
+    <Authors>Jan Zieschang</Authors>
+    <Company>Private</Company>
+  </PropertyGroup>
+  <PropertyGroup>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+  <PropertyGroup>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <RootNamespace>janzi.Logging</RootNamespace>
+    <AssemblyName>janzi.Logging</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>

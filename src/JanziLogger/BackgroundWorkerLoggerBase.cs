@@ -9,29 +9,24 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 
 namespace janzi.Logging;
-
 public abstract class BackgroundWorkerLoggerBase : ILogger, IDisposable
 {
+    private readonly BackgroundWorkerLoggerProvider provider;
     private readonly string _categoryName;
-    private CancellationTokenSource cancellation = new CancellationTokenSource();
 
     internal IExternalScopeProvider ScopeProvider { get; set; }
 
     protected string CategoryName => _categoryName;
 
-    BlockingCollection<JsonLogEntry> LogActions = new BlockingCollection<JsonLogEntry>();
 
-    protected BackgroundWorkerLoggerBase(string categoryName, IExternalScopeProvider scopeProvider)
+    protected BackgroundWorkerLoggerBase(BackgroundWorkerLoggerProvider provider, string categoryName, IExternalScopeProvider scopeProvider)
     {
+        this.provider = provider;
         _categoryName = categoryName;
         ScopeProvider = scopeProvider;
-        TaskFactory tf = new TaskFactory(cancellation.Token, TaskCreationOptions.LongRunning, TaskContinuationOptions.RunContinuationsAsynchronously, TaskScheduler.Default);
-        _ = tf.StartNew(SaveLog);
     }
 
     public IDisposable BeginScope<TState>(TState state) => ScopeProvider?.Push(state) ?? janzi.Logging.NullScope.Instance;
@@ -55,17 +50,8 @@ public abstract class BackgroundWorkerLoggerBase : ILogger, IDisposable
         // Append the data of all BeginScope and LogXXX parameters to the message dictionary
         AppendScope(message.Scope, state);
         AppendScope(message.Scope);
-       LogActions.Add(message);
+       provider.Enqueue(message);
     }
-    private async Task SaveLog()
-    {
-        foreach (var content in LogActions.GetConsumingEnumerable(cancellation.Token))
-        {
-            await ProcessQueueItem(content);
-        }
-    }
-
-    protected abstract Task ProcessQueueItem(JsonLogEntry content);
 
     protected void AppendScope(IDictionary<string, object> dictionary)
     {
@@ -111,7 +97,6 @@ public abstract class BackgroundWorkerLoggerBase : ILogger, IDisposable
 
     public virtual void Dispose()
     {
-        cancellation.Cancel();
         GC.SuppressFinalize(this);
     }
 
